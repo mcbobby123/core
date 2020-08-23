@@ -20,7 +20,7 @@
     "express-graphql": "^0.9.0",
     "filter-obj": "^2.0.1",
     "got": "^11.5.0",
-    "graphql": "^14.6.0",
+    "graphql": "^14.7.0",
     "hypixelconstants": "slothpixel/hypixelconstants",
     "moment": "^2.26.0",
     "mongoose": "^5.9.22",
