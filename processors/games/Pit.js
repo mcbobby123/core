@@ -9,7 +9,9 @@ const {
 } = require('../../util/utility');
 
 // TODO - Decode the inventory data to more readable format
-const getInventory = (object) => object.data;
+const inventoryToBase64 = (object) => object.data ? Buffer.from(object.data).toString('base64') : null;
+
+
 
 function mergeStats({
   chat_messages = 0,
@@ -54,6 +56,7 @@ function mergeStats({
   wheat_farmed = 0,
   night_quests_completed = 0,
   dark_pants_crated = 0, // typo lol
+  hotbar_favorites = {},
   // Contracts
   contracts_started = 0,
   contracts_completed = 0,
@@ -62,12 +65,16 @@ function mergeStats({
   inv_armor = {},
   inv_enderchest = {},
   item_stash = {},
-  hotbar_favorites = {},
+  mystic_well_item = {},
+  mystic_well_pants = {},
   // Selected perks
   selected_perk_0 = null,
   selected_perk_1 = null,
   selected_perk_2 = null,
   selected_perk_3 = null,
+  // Genesis Map
+  allegiance = 'NONE',
+  genesis_points = 0,
   // Rest
   ...rest
 }) {
@@ -77,7 +84,24 @@ function mergeStats({
     valueMap: (value) => Math.round(value),
   });
 
+const levelXpRequirements = [15, 30, 50, 75, 125, 300, 600, 800, 900, 1000, 1200, 1500]; 
+const prestigeXpMultipliers = [1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.75, 2, 2.5, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 40, 45, 50, 75, 100, 101, 101, 101, 101, 101];
+const prestigeXpTotals = prestigeXpMultipliers.map(multi => levelXpRequirements.reduce((acc, cur) => acc + Math.ceil(cur*multi-0.01) * 10, 0));
+const xpPriorToPrestige = prestigeXpTotals.map((_, index, arr) => arr.slice(0, index).reduce((acc, cur) => acc + cur, 0));
+
+const prestige = prestiges.length;
+
+let scaledXp = (xp - xpPriorToPrestige[prestige]) / prestigeXpMultipliers[prestige];
+
+let level = 0;
+for(const xpAmount of levelXpRequirements){
+  const canAdd = Math.floor(Math.min(10, scaledXp / xpAmount));
+  scaledXp -= canAdd * xpAmount;
+  level += canAdd;
+}
+
   return {
+    level,
     kills,
     assists,
     deaths,
@@ -92,7 +116,7 @@ function mergeStats({
     gold: Math.round(cash),
     gold_earned: Math.round(cash_earned),
     xp,
-    prestige: prestiges.length,
+    prestige,
     renown,
     renown_unlocks,
     left_clicks,
@@ -115,6 +139,9 @@ function mergeStats({
     sewer_treasures_found,
     night_quests_completed,
     wheat_farmed,
+    hotbar_favorites,
+    allegiance,
+    genesis_points,
     dark_pants_created: dark_pants_crated,
     gold_during_prestige: getCoinsDuringPrestige(/^cash_during_prestige_/),
     selected_perks: {
@@ -124,11 +151,12 @@ function mergeStats({
       4: selected_perk_3,
     },
     items: {
-      inventory: getInventory(inv_contents),
-      armor: getInventory(inv_armor),
-      enderchest: getInventory(inv_enderchest),
-      stash: getInventory(item_stash),
-      hotbar_favorites: getInventory(hotbar_favorites),
+      inventory: inventoryToBase64(inv_contents),
+      armor: inventoryToBase64(inv_armor),
+      enderchest: inventoryToBase64(inv_enderchest),
+      stash: inventoryToBase64(item_stash),
+      mystic_well_item: inventoryToBase64(mystic_well_item),
+      mystic_well_pants: inventoryToBase64(mystic_well_pants),
     },
     damage_dealt: {
       total: damage_dealt,
